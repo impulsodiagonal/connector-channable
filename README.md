@@ -1,0 +1,2 @@
+# channable
+Channable Odoo connector
