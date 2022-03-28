@@ -1,2 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_connector_channable_connector_channable,connector_channable.connector_channable,model_connector_channable_connector_channable,base.group_user,1,1,1,1
+access_connector_channable_connection,access_connector_channable_connection,model_connector_channable_connection,base.group_user,1,1,1,1

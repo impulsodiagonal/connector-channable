@@ -1,60 +1,97 @@
 <odoo>
   <data>
-    <!-- explicit list view definition -->
-<!--
-    <record model="ir.ui.view" id="connector_channable.list">
-      <field name="name">connector_channable list</field>
-      <field name="model">connector_channable.connector_channable</field>
-      <field name="arch" type="xml">
-        <tree>
-          <field name="name"/>
-          <field name="value"/>
-          <field name="value2"/>
-        </tree>
-      </field>
+    <record id="view_connector_channable_connection_tree" model="ir.ui.view">
+        <field name="model">connector.channable.connection</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="(active == False)">
+                <field name="name" />
+                <field name="company" />
+                <field name="project" />
+                <field name="active" />
+            </tree>
+        </field>
     </record>
--->
-
-    <!-- actions opening views on models -->
-<!--
-    <record model="ir.actions.act_window" id="connector_channable.action_window">
-      <field name="name">connector_channable window</field>
-      <field name="res_model">connector_channable.connector_channable</field>
-      <field name="view_mode">tree,form</field>
+    <record id="view_connector_channable_connection_form" model="ir.ui.view">
+        <field name="model">connector.channable.connection</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field
+                        name="active"
+                        widget="statusbar"
+                    />
+                    <button
+                        name="activate"
+                        type="object"
+                        icon="fa-plus"
+                        class="btn btn-primary"
+                        string="Activate"
+                        attrs="{'invisible':[('active', '!=', False)]}"
+                        help="Acctivate the connection"
+                    />
+                    <button
+                        name="deactivate"
+                        type="object"
+                        icon="fa-minus"
+                        class="btn btn-default"
+                        string="Deactivate"
+                        attrs="{'invisible':[('active', '=', False)]}"
+                    />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <div class="oe_edit_only">
+                            <label for="name" />
+                        </div>
+                        <h1>
+                            <field name="name" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field
+                                name="api_token"
+                                attrs="{'readonly': [('active', '!=', False)]}"
+                            />
+                            <field
+                                name="company"
+                                attrs="{'readonly': [('active', '!=', False)]}"
+                            />
+                            <field
+                                name="project"
+                                attrs="{'readonly': [('active', '!=', False)]}"
+                            />
+                            <field
+                                name="url"
+                                attrs="{'readonly': [('active', '!=', False)]}"
+                            />
+                            <field
+                                name="params"
+                                attrs="{'readonly': [('active', '!=', False)]}"
+                            />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
     </record>
--->
-
-    <!-- server action to the one above -->
-<!--
-    <record model="ir.actions.server" id="connector_channable.action_server">
-      <field name="name">connector_channable server</field>
-      <field name="model_id" ref="model_connector_channable_connector_channable"/>
-      <field name="state">code</field>
-      <field name="code">
-        action = {
-          "type": "ir.actions.act_window",
-          "view_mode": "tree,form",
-          "res_model": model._name,
-        }
-      </field>
+    <record model="ir.actions.act_window" id="action_connector_channable_connection">
+        <field name="name">Channable Connector Connection</field>
+        <field name="res_model">connector.channable.connection</field>
+        <field name="view_mode">tree,form</field>
     </record>
--->
-
-    <!-- Top menu item -->
-<!--
-    <menuitem name="connector_channable" id="connector_channable.menu_root"/>
--->
-    <!-- menu categories -->
-<!--
-    <menuitem name="Menu 1" id="connector_channable.menu_1" parent="connector_channable.menu_root"/>
-    <menuitem name="Menu 2" id="connector_channable.menu_2" parent="connector_channable.menu_root"/>
--->
-    <!-- actions -->
-<!--
-    <menuitem name="List" id="connector_channable.menu_1_list" parent="connector_channable.menu_1"
-              action="connector_channable.action_window"/>
-    <menuitem name="Server to list" id="connector_channable" parent="connector_channable.menu_2"
-              action="connector_channable.action_server"/>
--->
+    <menuitem
+        id="menu_connector_channable"
+        name="Connector Channable"
+        parent="base.menu_administration"
+        sequence="11"
+    />
+    <menuitem
+        id="menu_connector_channable_connection"
+        name="Chanable Connection"
+        action="action_connector_channable_connection"
+        parent="menu_connector_channable"
+        sequence="11"
+    />
   </data>
 </odoo>
