@@ -70,6 +70,15 @@
                                 attrs="{'readonly': [('active', '!=', False)]}"
                             />
                         </group>
+                        <group>
+                            <field name="channel_ids">
+                                <tree string="Mediums">
+                                    <field name="name"/>
+                                    <field name="medium_id"/>
+                                    <field name="category_ids" widget="many2many_tags"/>
+                                </tree>
+                            </field>
+                        </group>
                     </group>
                 </sheet>
             </form>

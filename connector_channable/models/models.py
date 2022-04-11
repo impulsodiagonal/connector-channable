@@ -3,9 +3,17 @@
 from odoo import models, fields, api
 import json
 import requests
-from odoo.addons.queue_job.job import job
 from datetime import datetime
 
+
+class ChannableChannels(models.Model):
+    _name = 'connector.channable.connection.channel'
+    _description = 'Connector Chanable Connection Channel'
+
+    name = fields.Char('Name', required=True)
+    medium_id = fields.Many2one('utm.medium')
+    category_ids = fields.Many2many('res.partner.category', column1='channel_id', column2='category_id', string='Channel Partner Tags')
+    connection_id = fields.Many2one(comodel_name='connector.channable.connection')
 
 class ConnectorChannableConnection(models.Model):
     _name = 'connector.channable.connection'
@@ -18,8 +26,8 @@ class ConnectorChannableConnection(models.Model):
     active = fields.Boolean('State', default=False)
     url = fields.Char('Url', default='https://api.channable.com/v1')
     params = fields.Char('Parameters', default='limit=100')
+    channel_ids = fields.One2many(comodel_name='connector.channable.connection.channel', inverse_name='connection_id', string='Channels')
 
-    
     def activate(self):
         self.active = True
 
@@ -30,9 +38,9 @@ class ConnectorChannableConnection(models.Model):
         res = requests.get(req, headers=headers).json()
         if not 'orders' in res:
             return
-        done = self.env['sale.order'].search_read([('origin', '!=', False)], ['origin'])
+        done = [order['origin'] for order in self.env['sale.order'].search_read([('origin', '!=', False)], ['origin'])]
         for order in res['orders']:
-            if order['id'] not in done:
+            if str(order['id']) not in done:
                 self.with_delay().process_order(order)
 
     def find_product(self, line):
@@ -54,83 +62,115 @@ class ConnectorChannableConnection(models.Model):
                 return p
         return False
 
+    def find_partner(self, data, parent_id=None, partner_type=None):
+        filters = [('email', '=', data['email'])]
+        if parent_id:
+            filters += [
+                ('parent_id', '=', parent_id),
+                ('name', '=', data['first_name']+ ' ' + data['last_name']),
+                ('street','=', data['address1']),
+                ('street2', '=', data['address2']),
+                ('zip', '=', data['zip_code']),
+            ]
+        else:
+            filters += [('type', '=', 'contact')]
+        if partner_type == 'invoice':
+            filters += [('type', '=', 'invoice')]
+        elif partner_type == 'delivery': 
+            filters += [('type', '=', 'delivery')]
+
+        res = self.env['res.partner'].search(filters)
+        return res
+
+    def create_partner(self, data, parent_id=None, partner_type=None):
+        partner_data = {
+            'name': data['first_name']+ ' ' + data['last_name'],
+            'email': data['email'],
+        }
+        if not partner_type:
+            partner_data['phone'] = data['phone']
+            partner_data['mobile'] = data['mobile']
+            partner_data['company_type'] = 'company'
+
+        else:
+            partner_data['street'] = data['address1']
+            partner_data['street2'] = data['address2']
+            partner_data['parent_id'] = parent_id
+            partner_data['company_type'] = 'person'
+
+            if partner_type == 'invoice':
+                partner_data['type'] = 'invoice'
+            elif partner_type == 'delivery':
+                partner_data['type'] = 'delivery'
+
+            zip_id = self.env['res.city.zip'].search([('name', '=', data['zip_code'])])
+            if zip_id and len(zip_id) == 1:
+                partner_data['zip_id'] = zip_id.id
+                partner_data['zip'] = zip_id.name
+                partner_data['state_id'] = zip_id.city_id.state_id.id
+                partner_data['country_id'] = zip_id.city_id.country_id.id
+                partner_data['city_id'] = zip_id.city_id.id
+                partner_data['city'] = zip_id.city_id.name
+            else:
+                partner_data['country_id'] = self.env['res.country'].search([('code', '=', data['country_code'])]).id or None
+                partner_data['city'] = data['city']
+                partner_data['zip'] = data['zip_code']
+                if partner_data['country_id']:
+                    partner_data['state_id'] = self.env['res.country.state'].search([('country_id', '=', partner_data['country_id']),('code', '=', data['region_code'])]).id or None
+        
+        res = self.env['res.partner'].create(partner_data)
+        try:
+            res.vat = data['vat_number']
+        except:
+            vat_error = True
+        return res
+
     def process_order(self, order):
         #TODO process json
         GLOBAL_TAX_ID = 1
+        GLOBAL_TAX_PRCT = 1.21
         vat_error = False
+        MEDIUM = self.env['connector.channable.connection.channel'].search([('name', '=', order['channel_name'])])
+
         #create/set partner
         p = order['data']['customer']
-        p_data = {
-            'name': p['first_name']+ ' ' + p['last_name'],
-            'phone': p['phone'],
-            'mobile': p['mobile'],
-            'email': p['email'],
-            'company_type': 'company',
-        }
-        partner = self.env['res.partner'].create(p_data)
+        partner = self.find_partner(p)
+        if not partner:
+            partner = self.create_partner(p)
+            
         #create/set billing address
         b = order['data']['billing']
-        b_data = {
-            'name': b['first_name']+ ' ' + b['last_name'],
-            'street': b['address1'],
-            'street2': b['address2'],
-            'city': b['city'],
-            'zip': b['zip_code'],
-            'parent_id': partner.id,
-            'email': b['email'],
-            'type': 'invoice',
-            'company_type': 'person',
-            # 'vat': b['vat_number']
-        }
-        zip_id = self.env['res.city.zip'].search([('name', '=', b['zip_code'])])
-        if zip_id and len(zip_id) == 1:
-            b_data['zip_id'] = zip_id.id
-        else:
-            b_data['country_id'] = self.env['res.country'].search([('code', '=', b['country_code'])]).id or None
-            if b_data['country_id']:
-                b_data['state_id'] = self.env['res.country.state'].search([('country_id', '=', b_data['country_id']),('code', '=', b['region_code'])]).id or None
-        billing = self.env['res.partner'].create(b_data)
-        try:
-            billing.vat = b['vat_number']
-        except:
-            vat_error = True
+        billing = self.find_partner(b, partner.id, 'invoice')
+        if not billing:
+            billing = self.create_partner(b, partner.id, 'invoice')
 
-       #create/set shipping address
+        #create/set shipping address
         s = order['data']['shipping']
-        s_data = {
-            'name': s['first_name']+ ' ' + s['last_name'],
-            'street': s['address1'],
-            'street2': s['address2'],
-            'city': s['city'],
-            'zip': s['zip_code'],
-            'parent_id': partner.id,
-            'email': s['email'],
-            'type': 'delivery',
-            'company_type': 'person',
-            # 'vat': s['vat_number']
-        }
-        zip_id = self.env['res.city.zip'].search([('name', '=', s['zip_code'])])
-        if zip_id and len(zip_id) == 1:
-            s_data['zip_id'] = zip_id.id
-        else:
-            s_data['country_id'] = self.env['res.country'].search([('code', '=', s['country_code'])]).id or None
-            if s_data['country_id']:
-                s_data['state_id'] = self.env['res.country.state'].search([('country_id', '=', s_data['country_id']),('code', '=', s['region_code'])]).id or None
-        delivery = self.env['res.partner'].create(s_data)
-        try:
-            delivery.vat = s['vat_number']
-        except:
-            vat_error = True
+        delivery = self.find_partner(s, partner.id, 'delivery')
+        if not delivery:
+            delivery = self.create_partner(s, partner.id, 'delivery')
 
         #create order data
         saleorder_data = {}
-        saleorder_data['name'] = order['id']
+        # saleorder_data['name'] = order['id']
         saleorder_data['origin'] = order['id']
         saleorder_data['partner_id'] = partner.id
         saleorder_data['partner_invoice_id'] = billing.id
         saleorder_data['partner_shipping_id'] = delivery.id
         saleorder_data['date_order'] = datetime.strftime(datetime.fromisoformat(order['created']),'%Y-%m-%d %H:%M:%S')
         saleorder_data['user_id'] = 1
+        saleorder_data['fiscal_position_id'] = 1
+        
+        #detect fiscal position and OSS stuff
+        country_fp = self.env['account.fiscal.position'].search([('country_id', '=', delivery.country_id.id)])
+        if country_fp:
+            saleorder_data['fiscal_position_id'] = country_fp.id
+            GLOBAL_TAX_ID = country_fp.tax_ids[0].tax_dest_id.id
+            GLOBAL_TAX_PRCT = country_fp.tax_ids[0].tax_dest_id.amount
+
+        if MEDIUM:
+            saleorder_data['medium_id'] = MEDIUM.medium_id.id
+
         o_saleorder = self.env['sale.order'].create(saleorder_data)
 
         #create order lines
@@ -140,21 +180,30 @@ class ConnectorChannableConnection(models.Model):
                 'order_id': o_saleorder.id,
                 'name': line['title'],
                 'product_uom_qty': line['quantity'],
-                'price_unit': line['price'],
-                'tax_id' : [(6, 0, [GLOBAL_TAX_ID])]
             }
+
+            #analyze taxes, subtotal and guess it if necessary
+            if line['price_tax']:
+                #case1 has taxes, hurray!
+                base = (line['price'] - line['price_tax']) / line['quantity']
+            else:
+                #case2 don't have taxes, infere it
+                base = line['price'] / line['quantity']
+                base = base / (GLOBAL_TAX_PRCT/100+1)
+            line_data['price_unit'] =  base
+            line_data['tax_id'] = [(6, 0, [GLOBAL_TAX_ID])]
+            
             if product:
                 line_data['product_id'] = product.id
+
             o_saleorder_line = self.env['sale.order.line'].create(line_data)
         #finish order
         return 
 
 
     def fetch_channable_orders(self):
-        print('entro cron', self)
         conns = self.env['connector.channable.connection'].search([])
         for record in conns:
-            print('inside',2)
             headers = {'Authorization': "Bearer {}".format(record.api_token)}
             req = '%s/companies/%s/projects/%s/orders?%s' % (record.url, record.company, record.project, record.params)
             self.with_delay().queue_request(req, headers)
