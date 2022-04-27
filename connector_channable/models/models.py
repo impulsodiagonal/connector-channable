@@ -157,7 +157,7 @@ class ConnectorChannableConnection(models.Model):
         saleorder_data['partner_id'] = partner.id
         saleorder_data['partner_invoice_id'] = billing.id
         saleorder_data['partner_shipping_id'] = delivery.id
-        saleorder_data['date_order'] = datetime.strftime(datetime.fromisoformat(order['created']),'%Y-%m-%d %H:%M:%S')
+        saleorder_data['date_order'] = datetime.strftime(datetime.strptime(order['created'], "%Y-%m-%dT%H:%M:%S.%f+00:00"),'%Y-%m-%d %H:%M:%S')
         saleorder_data['user_id'] = 1
         saleorder_data['fiscal_position_id'] = 1
         
