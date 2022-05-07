@@ -10,7 +10,7 @@
         Module to manage connection between Channable and Odoo
     """,
 
-    'author': "Impulso Diagonal,SLU",
+    'author': "Impulso Diagonal SLU",
     'website': "https://www.impulso.xyz",
 
     # Categories can be used to filter modules in modules listing
