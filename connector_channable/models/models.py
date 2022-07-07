@@ -1,7 +1,10 @@
-from odoo import models, fields, api
+
 import json
 import requests
 from datetime import datetime
+
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
 
 class ChannableChannels(models.Model):
@@ -15,6 +18,7 @@ class ChannableChannels(models.Model):
                                     column2='category_id', 
                                     string='Channel Partner Tags')
     connection_id = fields.Many2one(comodel_name='connector.channable.connection')
+    user_id = fields.Many2one('res.users')
 
 class ConnectorChannableConnection(models.Model):
     _name = 'connector.channable.connection'
@@ -51,6 +55,11 @@ class ConnectorChannableConnection(models.Model):
     def find_product(self, line):
         #do main search following channable rules ->
         #article_number = official identifier
+        if 'id' in line:
+            p = self.env['product.product'].search(
+                [('amazon_id', '=', line['id'])])
+            if p:
+                return p
         if 'article_number' in line:
             p = self.env['product.product'].search(
                 [('barcode', '=', line['article_number'])])
@@ -182,6 +191,11 @@ class ConnectorChannableConnection(models.Model):
         saleorder_data['date_order'] = order['created'][:19].replace('T', ' ')
         saleorder_data['user_id'] = 1
         saleorder_data['fiscal_position_id'] = 1
+
+        if order['channel_name'] == 'mirakl_carrefour' and order['platform_id']:
+            saleorder_data['name'] = order['platform_id']
+        if order['channel_name'] == 'amazon' and order['channel_id']:
+            saleorder_data['name'] = order['channel_id']
         
         #detect fiscal position and OSS stuff
         country_fp = self.env['account.fiscal.position'].search(
@@ -193,6 +207,8 @@ class ConnectorChannableConnection(models.Model):
 
         if MEDIUM:
             saleorder_data['medium_id'] = MEDIUM.medium_id.id
+            if MEDIUM.user_id:
+                saleorder_data['user_id'] = MEDIUM.user_id.id
 
         o_saleorder = self.env['sale.order'].create(saleorder_data)
 

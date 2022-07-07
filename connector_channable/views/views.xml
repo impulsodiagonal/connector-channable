@@ -76,6 +76,7 @@
                                     <field name="name"/>
                                     <field name="medium_id"/>
                                     <field name="category_ids" widget="many2many_tags"/>
+                                    <field name="user_id"/>
                                 </tree>
                             </field>
                         </group>
