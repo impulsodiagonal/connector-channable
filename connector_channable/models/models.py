@@ -55,19 +55,14 @@ class ConnectorChannableConnection(models.Model):
     def find_product(self, line):
         #do main search following channable rules ->
         #article_number = official identifier
-        if 'id' in line:
-            p = self.env['product.product'].search(
-                [('amazon_id', '=', line['id'])])
-            if p:
-                return p
-        if 'article_number' in line:
-            p = self.env['product.product'].search(
-                [('barcode', '=', line['article_number'])])
-            if p:
-                return p
         if 'article_number' in line:
             p = self.env['product.product'].search(
                 [('amazon_id', '=', line['article_number'])])
+            if p and len(p) == 1:
+                return p
+        if 'id' in line:
+            p = self.env['product.product'].search(
+                [('default_code', '=', line['id'])])
             if p:
                 return p
         #do extendend search
