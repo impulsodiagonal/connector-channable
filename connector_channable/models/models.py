@@ -88,7 +88,7 @@ class ConnectorChannableConnection(models.Model):
         if parent_id:
             filters += [
                 ('parent_id', '=', parent_id),
-                ('name', '=', data['first_name']+ ' ' + data['last_name']),
+                ('name', '=', ('%s %s' % (data['first_name'] or '', data['last_name'] or '')).strip()),
                 ('street','=', data['address1']),
                 ('street2', '=', data['address2']),
                 ('zip', '=', data['zip_code']),
