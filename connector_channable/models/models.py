@@ -105,7 +105,7 @@ class ConnectorChannableConnection(models.Model):
 
     def create_partner(self, data, parent_id=None, partner_type=None):
         partner_data = {
-            'name': data['first_name']+ ' ' + data['last_name'],
+            'name': ('%s %s' % (data['first_name'] or '', data['last_name'] or '')).strip(),
             'email': data['email'],
         }
         if not partner_type:
