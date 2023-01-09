@@ -1,5 +1,4 @@
 <odoo>
-  <data>
     <record id="view_connector_channable_connection_tree" model="ir.ui.view">
         <field name="model">connector.channable.connection</field>
         <field name="arch" type="xml">
@@ -16,10 +15,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <field
-                        name="active"
-                        widget="statusbar"
-                    />
+                    <field name="active" widget="statusbar" />
                     <button
                         name="activate"
                         type="object"
@@ -73,10 +69,13 @@
                         <group>
                             <field name="channel_ids">
                                 <tree string="Mediums">
-                                    <field name="name"/>
-                                    <field name="medium_id"/>
-                                    <field name="category_ids" widget="many2many_tags"/>
-                                    <field name="user_id"/>
+                                    <field name="name" />
+                                    <field name="medium_id" />
+                                    <field
+                                        name="category_ids"
+                                        widget="many2many_tags"
+                                    />
+                                    <field name="user_id" />
                                 </tree>
                             </field>
                         </group>
@@ -103,5 +102,4 @@
         parent="menu_connector_channable"
         sequence="11"
     />
-  </data>
 </odoo>

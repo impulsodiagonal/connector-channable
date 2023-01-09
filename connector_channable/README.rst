@@ -14,7 +14,7 @@ Connector Channable
     :target: https://github.com/impulsodiagonal/connector-channable/tree/13.0/connector_channable
     :alt: impulsodiagonal/connector-channable
 
-|badge1| |badge2| 
+|badge1| |badge2|
 
 Módule to fetch channable orders into Odoo via Queue Job.
 
