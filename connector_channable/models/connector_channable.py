@@ -122,13 +122,13 @@ class ConnectorChannableConnection(models.Model):
         res = self.env["res.partner"].search(filters)
         return res
 
-    def create_partner(self, data, parent=None, partner_type=None):
+    def create_partner(self, data, extra, parent=None, partner_type=None):
         # search category first
-        category_id = self.env["res.partner.category"].search([("name", "=", data["extra"]["label"])])
+        category_id = self.env["res.partner.category"].search([("name", "=", extra["label"])])
 
         if not category_id:
             category_id = self.env["res.partner.category"].create({
-                "name": data["extra"]["label"]
+                "name": extra["label"]
             })
         # prepare partner data
         partner_data = {
@@ -202,19 +202,20 @@ class ConnectorChannableConnection(models.Model):
         )
         # create/set partner
         p = order["data"]["customer"]
+        e = order["data"]["extra"]
         partner = self.find_partner(p)
         if not partner:
-            partner = self.create_partner(p)
+            partner = self.create_partner(p, e)
         # create/set billing address
         b = order["data"]["billing"]
         billing = self.find_partner(b, partner.id, "invoice")
         if not billing:
-            billing = self.create_partner(b, parent=partner, partner_type="invoice")
+            billing = self.create_partner(b, e, parent=partner, partner_type="invoice")
         # create/set shipping address
         s = order["data"]["shipping"]
         delivery = self.find_partner(s, partner.id, "delivery")
         if not delivery:
-            delivery = self.create_partner(s, parent=partner, partner_type="delivery")
+            delivery = self.create_partner(s, e, parent=partner, partner_type="delivery")
         # create order data
         order_form = Form(self.env["sale.order"])
         order_form.partner_id = partner
