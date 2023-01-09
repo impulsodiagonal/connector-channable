@@ -123,11 +123,20 @@ class ConnectorChannableConnection(models.Model):
         return res
 
     def create_partner(self, data, parent=None, partner_type=None):
+        # search category first
+        category_id = self.env["res.partner.category"].search([("name", "=", data["extra"]["label"])])
+
+        if not category_id:
+            category_id = self.env["res.partner.category"].create({
+                "name": data["extra"]["label"]
+            })
+        # prepare partner data
         partner_data = {
             "name": (
                 "%s %s" % (data["first_name"] or "", data["last_name"] or "")
             ).strip(),
             "email": data["email"],
+            "category_id": [(4, category_id.id)]
         }
         if not partner_type:
             partner_data["phone"] = data["phone"]
@@ -178,6 +187,8 @@ class ConnectorChannableConnection(models.Model):
                         or None
                     )
         res = self.env["res.partner"].create(partner_data)
+
+        # TODO: change order and create vat in dict?
         try:
             res.vat = data["vat_number"]
         except Exception:
