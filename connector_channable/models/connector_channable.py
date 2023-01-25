@@ -131,10 +131,12 @@ class ConnectorChannableConnection(models.Model):
                 "name": extra["label"]
             })
         # prepare partner data
+        if data["middle_name"]:
+            name = f'{data["first_name"]} {data["middle_name"]} {data["last_name"]}'
+        else:
+            name = f'{data["first_name"]} {data["last_name"]}'
         partner_data = {
-            "name": (
-                "%s %s" % (data["first_name"] or "", data["last_name"] or "")
-            ).strip(),
+            "name": name.strip(),
             "email": data["email"],
             "category_id": [(4, category_id.id)]
         }
@@ -252,11 +254,11 @@ class ConnectorChannableConnection(models.Model):
                 else:
                     line_form.price_unit = line["price"] - line["price_tax"]
         order_vals = order_form._values_to_save(all_fields=True)
-        if order["channel_name"] == "mirakl_carrefour" and order["platform_id"]:
-            order_vals["name"] = order["platform_id"]
-        elif order.get("channel_id"):
-            # Use this default value, that matches with Amazon, PC Componentes...
-            order_vals["name"] = order["channel_id"]
+        #if order["channel_name"] == "mirakl_carrefour" and order["platform_id"]:
+        #    order_vals["name"] = order["platform_id"]
+        #elif order.get("channel_id"):
+        #    # Use this default value, that matches with Amazon, PC Componentes...
+        order_vals["name"] = order["channel_id"]
         sale_order = self.env["sale.order"].create(order_vals)
         # finish order only if everything went well
         if confirm_order:
