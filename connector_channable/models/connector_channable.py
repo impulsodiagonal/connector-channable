@@ -259,6 +259,7 @@ class ConnectorChannableConnection(models.Model):
         #elif order.get("channel_id"):
         #    # Use this default value, that matches with Amazon, PC Componentes...
         order_vals["name"] = order["channel_id"]
+        order_vals["client_order_ref"] = order["channel_id"]
         sale_order = self.env["sale.order"].create(order_vals)
         # finish order only if everything went well
         if confirm_order:
@@ -273,6 +274,7 @@ class ConnectorChannableConnection(models.Model):
                 record.url,
                 record.company,
                 record.project,
+                #"start_date=2023-04-10&end_date=2023-04-10"
                 record.params,
             )
             self.with_delay().queue_request(req, headers)
