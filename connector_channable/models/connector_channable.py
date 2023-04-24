@@ -276,3 +276,15 @@ class ConnectorChannableConnection(models.Model):
                 record.params,
             )
             self.with_delay().queue_request(req, headers)
+
+    def fetch_channable_order_by_reference(self, ref):
+        conns = self.env["connector.channable.connection"].search([])
+        for record in conns:
+            headers = {"Authorization": "Bearer {}".format(record.api_token)}
+            req = "%s/companies/%s/projects/%s/orders?%s" % (
+                record.url,
+                record.company,
+                record.project,
+                "search=%s" % ref,
+            )
+            self.with_delay().queue_request(req, headers)
